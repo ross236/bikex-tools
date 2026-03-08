@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BikeX Purchase Coding Helper</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brown:     #4A3728;
+    --green:     #4A7C3F;
+    --lt-green:  #EBF3E8;
+    --dk-green:  #2E5C26;
+    --cream:     #FAF7F3;
+    --warm-grey: #E8E2DA;
+    --text:      #2C2416;
+    --muted:     #7A6E65;
+    --white:     #FFFFFF;
+    --result-bg: #F0F7EE;
+    --shadow:    0 4px 24px rgba(74,55,40,0.10);
+    --radius:    14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+  .header { width: 100%; max-width: 580px; margin-bottom: 28px; text-align: center; }
+  .header-badge {
+    display: inline-block; background: var(--brown); color: var(--white);
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px; margin-bottom: 10px;
+  }
+  .header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(22px,5vw,30px); color: var(--brown); line-height: 1.2; margin-bottom: 6px; }
+  .header p  { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+  .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 580px; overflow: hidden; }
+
+  .progress-bar  { height: 4px; background: var(--warm-grey); }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--dk-green)); transition: width 0.4s ease; border-radius: 0 2px 2px 0; }
+
+  .screen { padding: 28px 28px 24px; display: none; animation: fadeIn 0.25s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+  .step-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green); margin-bottom: 8px; }
+  .question   { font-family: 'DM Serif Display', serif; font-size: clamp(17px,4vw,21px); color: var(--brown); line-height: 1.35; margin-bottom: 14px; }
+
+  .hint { font-size: 13px; color: var(--muted); margin-bottom: 18px; padding: 10px 14px; background: var(--lt-green); border-left: 3px solid var(--green); border-radius: 0 8px 8px 0; line-height: 1.5; }
+  .hint strong { color: var(--dk-green); }
+
+  .options { display: flex; flex-direction: column; gap: 9px; }
+  .opt-btn {
+    display: flex; align-items: center; gap: 13px;
+    background: var(--cream); border: 2px solid var(--warm-grey); border-radius: 10px;
+    padding: 12px 15px; cursor: pointer; text-align: left;
+    transition: all 0.16s ease; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500; color: var(--text); width: 100%;
+  }
+  .opt-btn:hover { border-color: var(--green); background: var(--lt-green); transform: translateX(3px); }
+  .opt-icon { width: 34px; height: 34px; border-radius: 8px; background: var(--warm-grey); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; transition: background 0.16s; }
+  .opt-btn:hover .opt-icon { background: #d4e8d0; }
+  .opt-text  { flex: 1; }
+  .opt-label { display: block; font-weight: 600; }
+  .opt-sub   { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── RESULT ── */
+  .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .result-icon   { width: 44px; height: 44px; background: var(--lt-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .result-title  { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--brown); line-height: 1.2; }
+  .result-sub    { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  .coding-rows { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .coding-row  { background: var(--result-bg); border: 1.5px solid #c8e0c4; border-radius: 10px; padding: 13px 15px; }
+  .coding-row.split-row { background: #FEF9ED; border-color: #E8C97A; }
+  .coding-row.ask-row   { background: #FEF3F3; border-color: #E8AAAA; }
+  .row-label   { font-size: 11px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .split-row .row-label { color: #8A6820; }
+  .ask-row   .row-label { color: #8A2020; }
+
+  .code-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; flex-direction: column; background: var(--white); border: 1.5px solid #b8d4b4; border-radius: 8px; padding: 6px 12px; min-width: 88px; }
+  .split-row .chip { border-color: #d4b86a; }
+  .ask-row   .chip { border-color: #d4aaaa; }
+  .chip-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .chip-value { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--brown); line-height: 1.2; }
+  .chip-desc  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .result-note { font-size: 12px; color: var(--muted); background: #FEF9ED; border-left: 3px solid #E8C97A; border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 14px; line-height: 1.5; }
+  .result-warn { font-size: 12px; color: #6B2020; background: #FEF3F3; border-left: 3px solid #E8AAAA; border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 14px; line-height: 1.5; }
+
+  .checklist       { background: var(--lt-green); border-radius: 10px; padding: 13px 15px; margin-bottom: 18px; }
+  .checklist-title { font-size: 11px; font-weight: 600; color: var(--dk-green); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 9px; }
+  .check-item      { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; color: var(--text); margin-bottom: 5px; line-height: 1.4; }
+  .check-item:last-child { margin-bottom: 0; }
+  .check-item::before { content: "✓"; color: var(--green); font-weight: 700; flex-shrink: 0; }
+
+  .btn-row    { display: flex; gap: 10px; margin-top: 4px; }
+  .btn-back   { display: flex; align-items: center; gap: 5px; background: none; border: 1.5px solid var(--warm-grey); border-radius: 8px; padding: 10px 15px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all 0.16s; white-space: nowrap; }
+  .btn-back:hover { border-color: var(--brown); color: var(--brown); }
+  .btn-restart { flex: 1; background: var(--brown); border: none; border-radius: 8px; padding: 12px 18px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--white); cursor: pointer; transition: background 0.16s; }
+  .btn-restart:hover { background: #3a2a1e; }
+
+  .footer { margin-top: 18px; text-align: center; font-size: 12px; color: var(--muted); }
+  .footer a { color: var(--green); text-decoration: none; }
+  @media (max-width: 420px) { .screen { padding: 18px; } .opt-btn { padding: 11px 13px; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-badge">Silicon Valley Bicycle Exchange</div>
+  <h1>BikeX Purchase Coding Helper</h1>
+  <p>For Ramp credit card purchases and other transactions.<br>Answer a few questions — get the exact category &amp; class.</p>
+</div>
+
+<div class="card" id="mainCard">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div id="screenContainer"></div>
+</div>
+
+<div class="footer">
+  SOP-FIN-001 &nbsp;·&nbsp; Questions? Contact <a href="#">Katy Tripp, Treasurer</a> or <a href="#">Ross Stovall, Secretary</a>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  DECISION TREE
+// ═══════════════════════════════════════════════════════════════════
+// node types:
+//   question  → shows options, each option has a .next node id
+//   result    → shows coding result
+//   other     → shows second-level 'Other purchases' menu
+
+const TREE = {
+
+  // ── ROOT ────────────────────────────────────────────────────────
+  root: {
+    type: 'question',
+    label: 'What type of purchase is this?',
+    stepLabel: null,
+    hint: null,
+    options: [
+      { label: 'New items for resale in the store',       sub: 'COGS — chains, tires, tubes, helmets, locks, etc.',      icon: '🚲', next: 'cogs_tax' },
+      { label: 'New items for donation with bikes',        sub: 'Locks, helmets, lights to be donated with refurbished bikes', icon: '🎁', next: 'r_donation_items' },
+      { label: 'New parts for refurbishing bikes',         sub: 'Tires, tubes, chains, etc. for refurbishing bikes',        icon: '🔩', next: 'refurb_parts_program' },
+      { label: 'Supplies & materials for refurbishing bikes in shop', sub: 'Grease, rags, cleaners',                           icon: '🧴', next: 'supplies_tax' },
+      { label: 'Tools & shop equipment',                   sub: 'Wrenches, stands, shop tools — under $5,000',      icon: '🔧', next: 'tools_tax' },
+      { label: 'Packing supplies',                         sub: 'Boxes, tape, packing materials',                   icon: '📦', next: 'packing_tax' },
+      { label: 'Outbound shipping & freight',              sub: 'BikeFlights, UPS, and other outbound shipments',    icon: '🚚', next: 'outbound_program' },
+      { label: 'Inbound shipping & freight for donation items', sub: 'Freight on incoming donated bikes or parts',    icon: '📬', next: 'r_inbound' },
+      { label: 'Food & refreshments',                      sub: 'Volunteer appreciation food, staff meals',                    icon: '🍕', next: 'food_who' },
+      { label: 'Other purchases',                          sub: 'Office, facility, travel, subscriptions & more',   icon: '📋', next: 'other_menu' },
+    ]
+  },
+
+  // ── COGS ────────────────────────────────────────────────────────
+  cogs_tax: {
+    type: 'question', stepLabel: 'Step 2 of 3',
+    label: 'Was sales tax charged on this purchase?',
+    hint: '<strong>Check your receipt.</strong> If there is a sales tax line, answer Yes.',
+    options: [
+      { label: 'Yes — sales tax was charged', sub: null, icon: '✅', next: 'r_cogs_taxpaid' },
+      { label: 'No — no sales tax',           sub: null, icon: '❌', next: 'cogs_freight_program' },
+    ]
+  },
+  cogs_freight_program: {
+    type: 'question', stepLabel: 'Step 3 of 3',
+    label: 'Is freight listed as a separate line on the receipt?',
+    hint: '<strong>Important:</strong> If the receipt says &ldquo;Shipping &amp; Handling&rdquo; or &ldquo;S&amp;H&rdquo; &mdash; that is <strong>not</strong> a separate freight line. Only split when freight is its own distinct line.',
+    options: [
+      { label: 'Yes — freight is its own line', sub: "Not 'Shipping & Handling'", icon: '📋', next: 'r_cogs_freight_retail' },
+      { label: 'No — combined total or S&H',    sub: null,                         icon: '➖', next: 'r_cogs_nofreight_retail' },
+    ]
+  },
+
+  // ── SUPPLIES (grease, rags, cleaners) ───────────────────────────
+  supplies_tax: {
+    type: 'question', stepLabel: 'Step 2 of 4',
+    label: 'Was sales tax charged on this purchase?',
+    hint: '<strong>Check your receipt.</strong> If there is a sales tax line, answer Yes.',
+    options: [
+      { label: 'Yes — sales tax was charged', sub: null, icon: '✅', next: 'supplies_program_taxpaid' },
+      { label: 'No — no sales tax',           sub: null, icon: '❌', next: 'supplies_freight' },
+    ]
+  },
+  supplies_freight: {
+    type: 'question', stepLabel: 'Step 3 of 4',
+    label: 'Is freight listed as a separate line on the receipt?',
+    hint: '<strong>Important:</strong> &ldquo;Shipping &amp; Handling&rdquo; or &ldquo;S&amp;H&rdquo; is <strong>not</strong> a separate freight line. Only split when freight is its own distinct line.',
+    options: [
+      { label: 'Yes — freight is its own line', sub: "Not 'Shipping & Handling'", icon: '📋', next: 'supplies_freight_program' },
+      { label: 'No — combined total or S&H',    sub: null,                         icon: '➖', next: 'supplies_nofreight_program' },
+    ]
+  },
+  supplies_program_taxpaid: {
+    type: 'question', stepLabel: 'Step 3 of 4',
+    label: 'Are these supplies for Retail mechanics or Donation Program volunteers?',
+    hint: null,
+    options: [
+      { label: 'Retail mechanics',     sub: null,                           icon: '🏪', next: 'r_supplies_taxpaid_retail' },
+      { label: 'Donation volunteers',  sub: null,                           icon: '🙋', next: 'r_supplies_taxpaid_volunteer' },
+      { label: 'Both — shared',        sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_supplies_taxpaid_both' },
+    ]
+  },
+  supplies_freight_program: {
+    type: 'question', stepLabel: 'Step 4 of 4',
+    label: 'Are these supplies for Retail mechanics or Donation Program volunteers?',
+    hint: null,
+    options: [
+      { label: 'Retail mechanics',     sub: null,                           icon: '🏪', next: 'r_supplies_freight_retail' },
+      { label: 'Donation volunteers',  sub: null,                           icon: '🙋', next: 'r_supplies_freight_volunteer' },
+      { label: 'Both — shared',        sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_supplies_freight_both' },
+    ]
+  },
+  supplies_nofreight_program: {
+    type: 'question', stepLabel: 'Step 4 of 4',
+    label: 'Are these supplies for Retail mechanics or Donation Program volunteers?',
+    hint: null,
+    options: [
+      { label: 'Retail mechanics',     sub: null,                           icon: '🏪', next: 'r_supplies_nofreight_retail' },
+      { label: 'Donation volunteers',  sub: null,                           icon: '🙋', next: 'r_supplies_nofreight_volunteer' },
+      { label: 'Both — shared',        sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_supplies_nofreight_both' },
+    ]
+  },
+
+  // ── TOOLS ───────────────────────────────────────────────────────
+  tools_tax: {
+    type: 'question', stepLabel: 'Step 2 of 4',
+    label: 'Was sales tax charged on this purchase?',
+    hint: '<strong>Check your receipt.</strong> If there is a sales tax line, answer Yes.',
+    options: [
+      { label: 'Yes — sales tax was charged', sub: null, icon: '✅', next: 'tools_program_taxpaid' },
+      { label: 'No — no sales tax',           sub: null, icon: '❌', next: 'tools_freight' },
+    ]
+  },
+  tools_freight: {
+    type: 'question', stepLabel: 'Step 3 of 4',
+    label: 'Is freight listed as a separate line on the receipt?',
+    hint: '<strong>Important:</strong> &ldquo;Shipping &amp; Handling&rdquo; or &ldquo;S&amp;H&rdquo; is <strong>not</strong> a separate freight line. Only split when freight is its own distinct line.',
+    options: [
+      { label: 'Yes — freight is its own line', sub: "Not 'Shipping & Handling'", icon: '📋', next: 'tools_freight_program' },
+      { label: 'No — combined total or S&H',    sub: null,                         icon: '➖', next: 'tools_nofreight_program' },
+    ]
+  },
+  tools_program_taxpaid: {
+    type: 'question', stepLabel: 'Step 3 of 4',
+    label: 'Are these tools for Retail mechanics, Donation Program volunteers, or both?',
+    hint: null,
+    options: [
+      { label: 'Retail mechanics only',  sub: null,                           icon: '🏪', next: 'r_tools_taxpaid_retail' },
+      { label: 'Donation volunteers only',sub: null,                          icon: '🙋', next: 'r_tools_taxpaid_volunteer' },
+      { label: 'Both — shared',          sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_tools_taxpaid_both' },
+    ]
+  },
+  tools_freight_program: {
+    type: 'question', stepLabel: 'Step 4 of 4',
+    label: 'Are these tools for Retail mechanics, Donation Program volunteers, or both?',
+    hint: null,
+    options: [
+      { label: 'Retail mechanics only',  sub: null,                           icon: '🏪', next: 'r_tools_freight_retail' },
+      { label: 'Donation volunteers only',sub: null,                          icon: '🙋', next: 'r_tools_freight_volunteer' },
+      { label: 'Both — shared',          sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_tools_freight_both' },
+    ]
+  },
+  tools_nofreight_program: {
+    type: 'question', stepLabel: 'Step 4 of 4',
+    label: 'Are these tools for Retail mechanics, Donation Program volunteers, or both?',
+    hint: null,
+    options: [
+      { label: 'Retail mechanics only',  sub: null,                           icon: '🏪', next: 'r_tools_nofreight_retail' },
+      { label: 'Donation volunteers only',sub: null,                          icon: '🙋', next: 'r_tools_nofreight_volunteer' },
+      { label: 'Both — shared',          sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_tools_nofreight_both' },
+    ]
+  },
+
+  food_staff_class: {
+    type: 'question', stepLabel: 'Step 3 of 3',
+    label: 'Which class is this staff food expense for?',
+    hint: '<strong>Default is Class 131 — Retail Store Sales.</strong> Select a different class only if this meal is clearly associated with another program or function.',
+    options: [
+      { label: 'Class 131 — Retail Store Sales', sub: 'Default for most staff meals',          icon: '🏪', next: 'r_food_staff_131' },
+      { label: 'Class 110 — General Programs',   sub: null,                                     icon: '📋', next: 'r_food_staff_110' },
+      { label: 'Class 141 — General Education',  sub: null,                                     icon: '📚', next: 'r_food_staff_141' },
+      { label: 'Class 142 — BikeX Education',    sub: null,                                     icon: '🚲', next: 'r_food_staff_142' },
+      { label: 'Class 143 — Community Events',   sub: null,                                     icon: '🎉', next: 'r_food_staff_143' },
+      { label: 'Class 620 — Board',              sub: 'Board meetings and board-related meals',  icon: '🏛️', next: 'r_food_staff_620' },
+    ]
+  },
+  packing_tax: {
+    type: 'question', stepLabel: 'Step 2 of 4',
+    label: 'Was sales tax charged on this purchase?',
+    hint: '<strong>Check your receipt.</strong> If there is a sales tax line, answer Yes.',
+    options: [
+      { label: 'Yes — sales tax was charged', sub: null, icon: '✅', next: 'packing_program_taxpaid' },
+      { label: 'No — no sales tax',           sub: null, icon: '❌', next: 'packing_freight' },
+    ]
+  },
+  packing_freight: {
+    type: 'question', stepLabel: 'Step 3 of 4',
+    label: 'Is freight listed as a separate line on the receipt?',
+    hint: '<strong>Important:</strong> &ldquo;Shipping &amp; Handling&rdquo; or &ldquo;S&amp;H&rdquo; is <strong>not</strong> a separate freight line. Only split when freight is its own distinct line.',
+    options: [
+      { label: 'Yes — freight is its own line', sub: "Not 'Shipping & Handling'", icon: '📋', next: 'packing_freight_program' },
+      { label: 'No — combined total or S&H',    sub: null,                         icon: '➖', next: 'packing_nofreight_program' },
+    ]
+  },
+  packing_program_taxpaid: {
+    type: 'question', stepLabel: 'Step 3 of 4',
+    label: 'Are these packing supplies for Retail or Donations?',
+    hint: null,
+    options: [
+      { label: 'Retail sales',         sub: null,                           icon: '🏪', next: 'r_packing_taxpaid_retail' },
+      { label: 'Donations',            sub: null,                           icon: '🎁', next: 'r_packing_taxpaid_donation' },
+      { label: 'Both — shared',        sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_packing_taxpaid_both' },
+    ]
+  },
+  packing_freight_program: {
+    type: 'question', stepLabel: 'Step 4 of 4',
+    label: 'Are these packing supplies for Retail or Donations?',
+    hint: null,
+    options: [
+      { label: 'Retail sales',         sub: null,                           icon: '🏪', next: 'r_packing_freight_retail' },
+      { label: 'Donations',            sub: null,                           icon: '🎁', next: 'r_packing_freight_donation' },
+      { label: 'Both — shared',        sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_packing_freight_both' },
+    ]
+  },
+  packing_nofreight_program: {
+    type: 'question', stepLabel: 'Step 4 of 4',
+    label: 'Are these packing supplies for Retail or Donations?',
+    hint: null,
+    options: [
+      { label: 'Retail sales',         sub: null,                           icon: '🏪', next: 'r_packing_nofreight_retail' },
+      { label: 'Donations',            sub: null,                           icon: '🎁', next: 'r_packing_nofreight_donation' },
+      { label: 'Both — shared',        sub: '50:50 split default for 2026', icon: '⚖️', next: 'r_packing_nofreight_both' },
+    ]
+  },
+
+  // ── OUTBOUND SHIPPING ───────────────────────────────────────────
+  outbound_program: {
+    type: 'question', stepLabel: 'Step 2 of 2',
+    label: 'Is this shipping for Retail sales or Donation deliveries?',
+    hint: 'Account 8440 covers all outbound shipping. The Class is the only difference.',
+    options: [
+      { label: 'Retail sales shipment',  sub: null, icon: '🏪', next: 'r_outbound_retail' },
+      { label: 'Donation delivery',      sub: null, icon: '🎁', next: 'r_outbound_donation' },
+    ]
+  },
+
+  // ── FOOD ────────────────────────────────────────────────────────
+  food_who: {
+    type: 'question', stepLabel: 'Step 2 of 2',
+    label: 'Who is this food or refreshment for?',
+    hint: null,
+    options: [
+      { label: 'Volunteer appreciation food', sub: 'Food during volunteer sessions or appreciation events', icon: '🙋', next: 'r_food_volunteer' },
+      { label: 'Staff meal or meeting',        sub: 'Staff lunches, board meeting refreshments',           icon: '👔', next: 'food_staff_class' },
+    ]
+  },
+
+  // ── OTHER MENU ──────────────────────────────────────────────────
+  other_menu: {
+    type: 'question', stepLabel: null,
+    label: 'Which type of purchase is this?',
+    hint: null,
+    options: [
+      { label: 'General office supplies',              sub: 'Paper, pens, printer supplies',                    icon: '🖊️', next: 'other_class_8110_office' },
+      { label: 'Printing & copying',                   sub: 'Copies, flyers, printed materials',                 icon: '🖨️', next: 'other_class_8160_printing' },
+      { label: 'Postage & mailing',                    sub: 'Stamps, USPS postage',                              icon: '✉️', next: 'other_class_8130_postage' },
+      { label: 'Vehicle or equipment rental',          sub: 'Truck, van, trailer, rented tools',                 icon: '🔑', next: 'other_rental_type' },
+      { label: 'Cleaning supplies (facility)',         sub: 'Mops, cleaning products, etc. for the shop or office',    icon: '🧹', next: 'other_class_8230_cleaning' },
+      { label: 'Facility repairs & maintenance',       sub: 'Plumbing, electrical, building repairs',            icon: '🏗️', next: 'other_class_8230_facility' },
+      { label: 'Subscriptions & online services',      sub: 'QBO, DonorView, other apps, online memberships',    icon: '💻', next: 'r_8170_610' },
+      { label: 'Volunteer appreciation & recognition', sub: 'Gifts, awards, recognition items',                  icon: '🏅', next: 'r_other_vol_recognition' },
+      { label: 'Travel & conference expenses',         sub: 'Mileage, airfare, hotel, meals, registration',      icon: '✈️', next: 'other_travel_type' },
+      { label: "Don't see it here",                    sub: null, icon: '❓', next: 'r_other_unknown' },
+    ]
+  },
+
+  // ════════════════════════════════════════════════════════════════
+  //  RESULTS
+  // ════════════════════════════════════════════════════════════════
+
+  // ── Donation items (straight result) ────────────────────────────
+  r_donation_items: {
+    type: 'result', title: 'Single line entry', sub: 'New items donated with bikes — non-taxable',
+    rows: [{ label: 'Enter in Ramp', chips: [
+      { label:'Category', value:'8450', desc:'New items to donate' },
+      { label:'Class',    value:'120',  desc:'Bike Donation Ops' },
+    ]}]
+  },
+
+  // ── Refurb parts ────────────────────────────────────────────────
+  refurb_parts_program: {
+    type: 'question', stepLabel: 'Step 2 of 2',
+    label: 'Are these parts for bikes being donated or bikes being sold in the store?',
+    hint: null,
+    options: [
+      { label: 'Donated bikes',           sub: 'Donation Program — volunteer refurbishing',  icon: '🎁', next: 'r_refurb_parts_donation' },
+      { label: 'Retail bikes for sale',   sub: 'Parts for bikes sold in the store',          icon: '🏪', next: 'r_refurb_parts_retail' },
+      { label: 'Both — split required',   sub: 'Use exact split if known, otherwise 50:50',  icon: '⚖️', next: 'r_refurb_parts_both' },
+    ]
+  },
+
+  // ── Refurb parts results ─────────────────────────────────────────
+  r_refurb_parts_donation: {
+    type: 'result', title: 'Single line entry', sub: 'Parts for refurbishing — Donation Program',
+    rows: [{ label: 'Enter in Ramp', chips: [
+      { label:'Category', value:'8460', desc:'Parts for volunteer refurb' },
+      { label:'Class',    value:'120',  desc:'Bike Donation Ops' },
+    ]}]
+  },
+  r_refurb_parts_retail: {
+    type: 'result', title: 'Single line entry', sub: 'Parts for refurbishing — Retail bikes for sale',
+    rows: [{ label: 'Enter in Ramp', chips: [
+      { label:'Category', value:'5432', desc:'Parts for refurbishing for sale' },
+      { label:'Class',    value:'131',  desc:'Retail Store Sales' },
+    ]}]
+  },
+  r_refurb_parts_both: {
+    type: 'result', title: 'Split transaction', sub: 'Parts for refurbishing — Donation + Retail',
+    rows: [
+      { label: 'Line 1 — Donation portion', split: false, chips: [
+        { label:'Category', value:'8460', desc:'Parts for volunteer refurb' },
+        { label:'Class',    value:'120',  desc:'Bike Donation Ops' },
+      ]},
+      { label: 'Line 2 — Retail portion', split: true, chips: [
+        { label:'Category', value:'5432', desc:'Parts for refurbishing for sale' },
+        { label:'Class',    value:'131',  desc:'Retail Store Sales' },
+      ]},
+    ],
+    note: 'Split by actual usage if known. If the exact split is uncertain, use 50:50 as the default for 2026.'
+  },
+
+  // ── Inbound freight (always 8470) ───────────────────────────────
+  r_inbound: {
+    type: 'result', title: 'Single line entry', sub: 'Inbound shipping & freight — Donation items',
+    rows: [{ label: 'Enter in Ramp', chips: [
+      { label:'Category', value:'8470', desc:'Inbound freight' },
+      { label:'Class',    value:'120',  desc:'Bike Donation Ops' },
+    ]}],
+    note: 'Use this only for freight costs BikeX pays to receive donated items (e.g. picking up or shipping donated bikes and parts to our facility). For inbound freight on store inventory purchases, use the <strong>New items for resale in the store</strong> option instead.'
+  },
+
+  // ── COGS results ─────────────────────────────────────────────────
+  r_cogs_taxpaid: {
+    type: 'result', title: 'Single line entry', sub: 'COGS — sales tax was charged',
+    rows: [{ label: 'Enter in Ramp', chips: [
+      { label:'Category', value:'5431', desc:'New items for resale' },
+      { label:'Class',    value:'131',  desc:'Retail Store Sales' },
+    ]}]
+  },
+  r_cogs_nofreight_retail: {
+    type: 'result', title: 'Single line entry', sub: 'COGS — no sales tax, no separate freight',
+    rows: [{ label: 'Enter in Ramp', chips: [
+      { label:'Category', value:'5431', desc:'New items for resale' },
+      { label:'Class',    value:'131',  desc:'Retail Store Sales' },
+    ]}]
+  },
+  r_cogs_freight_retail: {
+    type: 'result', title: 'Split transaction', sub: 'COGS — with separate freight line',
+    rows: [
+      { label: 'Line 1 — Items', chips: [
+        { label:'Category', value:'5431', desc:'New items for resale' },
+        { label:'Class',    value:'131',  desc:'Retail Store Sales' },
+      ]},
+      { label: 'Line 2 — Freight', split: true, chips: [
+        { label:'Category', value:'5433', desc:'Inbound COGS freight' },
+        { label:'Class',    value:'131',  desc:'Retail Store Sales' },
+      ]},
+    ]
+  },
+
+  // ── Supplies results ─────────────────────────────────────────────
+  r_supplies_taxpaid_retail:    { type:'result', title:'Single line entry', sub:'Supplies — Retail, sales tax paid',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8421',desc:'Supplies — Tax Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_supplies_taxpaid_volunteer: { type:'result', title:'Single line entry', sub:'Supplies — Volunteers, sales tax paid',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8421',desc:'Supplies — Tax Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_supplies_taxpaid_both:      { type:'result', title:'Split transaction', sub:'Supplies — shared, sales tax paid',
+    rows:[
+      { label:'Line 1 — Retail (50%)',    split:true, chips:[{label:'Category',value:'8421',desc:'Supplies — Tax Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Volunteer (50%)', split:true, chips:[{label:'Category',value:'8421',desc:'Supplies — Tax Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_supplies_nofreight_retail:    { type:'result', title:'Single line entry', sub:'Supplies — Retail, no sales tax',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8422',desc:'Supplies — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_supplies_nofreight_volunteer: { type:'result', title:'Single line entry', sub:'Supplies — Volunteers, no sales tax',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8422',desc:'Supplies — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_supplies_nofreight_both:      { type:'result', title:'Split transaction', sub:'Supplies — shared, no sales tax',
+    rows:[
+      { label:'Line 1 — Retail (50%)',    split:true, chips:[{label:'Category',value:'8422',desc:'Supplies — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Volunteer (50%)', split:true, chips:[{label:'Category',value:'8422',desc:'Supplies — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_supplies_freight_retail: { type:'result', title:'Split transaction', sub:'Supplies — Retail, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Items',   chips:[{label:'Category',value:'8422',desc:'Supplies — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+    ]},
+  r_supplies_freight_volunteer: { type:'result', title:'Split transaction', sub:'Supplies — Volunteers, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Items',   chips:[{label:'Category',value:'8422',desc:'Supplies — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+      { label:'Line 2 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_supplies_freight_both: { type:'result', title:'Split transaction — 3 lines', sub:'Supplies — shared, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Retail (50%)',    chips:[{label:'Category',value:'8422',desc:'Supplies — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Volunteer (50%)', chips:[{label:'Category',value:'8422',desc:'Supplies — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+      { label:'Line 3 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'131',desc:'or 120 — match items'}]},
+    ]},
+
+  // ── Tools results ────────────────────────────────────────────────
+  r_tools_taxpaid_retail:    { type:'result', title:'Single line entry', sub:'Tools — Retail, sales tax paid',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8411',desc:'Tools & equip — Tax Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_tools_taxpaid_volunteer: { type:'result', title:'Single line entry', sub:'Tools — Volunteers, sales tax paid',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8411',desc:'Tools & equip — Tax Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_tools_taxpaid_both:      { type:'result', title:'Split transaction', sub:'Tools — shared, sales tax paid',
+    rows:[
+      { label:'Line 1 — Retail (50%)',    split:true, chips:[{label:'Category',value:'8411',desc:'Tools & equip — Tax Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Volunteer (50%)', split:true, chips:[{label:'Category',value:'8411',desc:'Tools & equip — Tax Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_tools_nofreight_retail:    { type:'result', title:'Single line entry', sub:'Tools — Retail, no sales tax',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8412',desc:'Tools & equip — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_tools_nofreight_volunteer: { type:'result', title:'Single line entry', sub:'Tools — Volunteers, no sales tax',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8412',desc:'Tools & equip — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_tools_nofreight_both:      { type:'result', title:'Split transaction', sub:'Tools — shared, no sales tax',
+    rows:[
+      { label:'Line 1 — Retail (50%)',    split:true, chips:[{label:'Category',value:'8412',desc:'Tools & equip — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Volunteer (50%)', split:true, chips:[{label:'Category',value:'8412',desc:'Tools & equip — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_tools_freight_retail: { type:'result', title:'Split transaction', sub:'Tools — Retail, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Items',   chips:[{label:'Category',value:'8412',desc:'Tools & equip — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+    ]},
+  r_tools_freight_volunteer: { type:'result', title:'Split transaction', sub:'Tools — Volunteers, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Items',   chips:[{label:'Category',value:'8412',desc:'Tools & equip — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+      { label:'Line 2 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_tools_freight_both: { type:'result', title:'Split transaction — 3 lines', sub:'Tools — shared, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Retail (50%)',    chips:[{label:'Category',value:'8412',desc:'Tools & equip — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Volunteer (50%)', chips:[{label:'Category',value:'8412',desc:'Tools & equip — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+      { label:'Line 3 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'131',desc:'or 120 — match items'}]},
+    ]},
+
+  // ── Packing results ──────────────────────────────────────────────
+  r_packing_taxpaid_retail:    { type:'result', title:'Single line entry', sub:'Packing — Retail, sales tax paid',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8431',desc:'Packing — Tax Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_packing_taxpaid_donation:  { type:'result', title:'Single line entry', sub:'Packing — Donations, sales tax paid',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8431',desc:'Packing — Tax Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_packing_taxpaid_both:      { type:'result', title:'Split transaction', sub:'Packing — shared, sales tax paid',
+    rows:[
+      { label:'Line 1 — Retail (50%)',   split:true, chips:[{label:'Category',value:'8431',desc:'Packing — Tax Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Donation (50%)', split:true, chips:[{label:'Category',value:'8431',desc:'Packing — Tax Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_packing_nofreight_retail:   { type:'result', title:'Single line entry', sub:'Packing — Retail, no sales tax',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8432',desc:'Packing — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_packing_nofreight_donation: { type:'result', title:'Single line entry', sub:'Packing — Donations, no sales tax',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8432',desc:'Packing — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_packing_nofreight_both:     { type:'result', title:'Split transaction', sub:'Packing — shared, no sales tax',
+    rows:[
+      { label:'Line 1 — Retail (50%)',   split:true, chips:[{label:'Category',value:'8432',desc:'Packing — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Donation (50%)', split:true, chips:[{label:'Category',value:'8432',desc:'Packing — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_packing_freight_retail: { type:'result', title:'Split transaction', sub:'Packing — Retail, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Items',   chips:[{label:'Category',value:'8432',desc:'Packing — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+    ]},
+  r_packing_freight_donation: { type:'result', title:'Split transaction', sub:'Packing — Donations, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Items',   chips:[{label:'Category',value:'8432',desc:'Packing — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+      { label:'Line 2 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+  r_packing_freight_both: { type:'result', title:'Split transaction — 3 lines', sub:'Packing — shared, no tax, separate freight',
+    rows:[
+      { label:'Line 1 — Retail (50%)',   chips:[{label:'Category',value:'8432',desc:'Packing — Tax NOT Paid'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Donation (50%)', chips:[{label:'Category',value:'8432',desc:'Packing — Tax NOT Paid'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+      { label:'Line 3 — Freight', split:true, chips:[{label:'Category',value:'8470',desc:'Inbound freight'},{label:'Class',value:'131',desc:'or 120 — match items'}]},
+    ]},
+
+  // ── Outbound shipping ────────────────────────────────────────────
+  r_outbound_retail:   { type:'result', title:'Single line entry', sub:'Outbound shipping — Retail',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8440',desc:'Outbound shipping'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_outbound_donation: { type:'result', title:'Single line entry', sub:'Outbound shipping — Donations',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8440',desc:'Outbound shipping'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_outbound_both:     { type:'result', title:'Split transaction', sub:'Outbound shipping — shared',
+    rows:[
+      { label:'Line 1 — Retail (50%)',   split:true, chips:[{label:'Category',value:'8440',desc:'Outbound shipping'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Donation (50%)', split:true, chips:[{label:'Category',value:'8440',desc:'Outbound shipping'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ]},
+
+  // ── Food ─────────────────────────────────────────────────────────
+  r_food_volunteer: { type:'result', title:'Single line entry', sub:'Volunteer appreciation food expenses',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8546',desc:'Volunteer appreciation food'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_food_staff_131: { type:'result', title:'Single line entry', sub:'Staff food & refreshments — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8115',desc:'Staff food & refreshments'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_food_staff_110: { type:'result', title:'Single line entry', sub:'Staff food & refreshments — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8115',desc:'Staff food & refreshments'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_food_staff_141: { type:'result', title:'Single line entry', sub:'Staff food & refreshments — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8115',desc:'Staff food & refreshments'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_food_staff_142: { type:'result', title:'Single line entry', sub:'Staff food & refreshments — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8115',desc:'Staff food & refreshments'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_food_staff_143: { type:'result', title:'Single line entry', sub:'Staff food & refreshments — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8115',desc:'Staff food & refreshments'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+  r_food_staff_620: { type:'result', title:'Single line entry', sub:'Staff food & refreshments — Board',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8115',desc:'Staff food & refreshments'},{label:'Class',value:'620',desc:'Board'}]}] },
+
+  // ── Other purchases — class question shared node ─────────────────
+  // Each "other" item that needs a class routes through a shared class-picker
+  // We use a naming convention: other_class_ACCT_DESC
+  other_class_8110_office: {
+    type:'question', stepLabel:'Final step',
+    label:'Which class is this office supplies expense for?',
+    hint:'<strong>Default is Class 610 — General Administrative.</strong> Select a different class only if these supplies are clearly for a specific program.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:'Default for most office supplies', icon:'🗂️', next:'r_8110_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null,                              icon:'🏪', next:'r_8110_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null,                              icon:'🎁', next:'r_8110_donation' },
+    ]
+  },
+  other_class_8160_printing: {
+    type:'question', stepLabel:'Final step',
+    label:'Which class is this printing & copying expense for?',
+    hint:'<strong>Default is Class 610 — General Administrative.</strong> Select a different class only if this printing is clearly for a specific program.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:'Default for most printing expenses', icon:'🗂️', next:'r_8160_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null, icon:'🏪', next:'r_8160_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null, icon:'🎁', next:'r_8160_donation' },
+      { label:'Class 110 — General Programs',        sub:null, icon:'📋', next:'r_8160_110' },
+      { label:'Class 141 — General Education',       sub:null, icon:'📚', next:'r_8160_141' },
+      { label:'Class 142 — BikeX Education',         sub:null, icon:'🚲', next:'r_8160_142' },
+      { label:'Class 143 — Community Events',        sub:null, icon:'🎉', next:'r_8160_143' },
+    ]
+  },
+  other_class_8130_postage: {
+    type:'question', stepLabel:'Final step',
+    label:'Which class is this postage & mailing expense for?',
+    hint:'<strong>Default is Class 610 — General Administrative.</strong> Select a different class only if this postage is clearly for a specific program.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:'Default for most postage expenses', icon:'🗂️', next:'r_8130_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null, icon:'🏪', next:'r_8130_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null, icon:'🎁', next:'r_8130_donation' },
+      { label:'Class 110 — General Programs',        sub:null, icon:'📋', next:'r_8130_110' },
+      { label:'Class 141 — General Education',       sub:null, icon:'📚', next:'r_8130_141' },
+      { label:'Class 142 — BikeX Education',         sub:null, icon:'🚲', next:'r_8130_142' },
+      { label:'Class 143 — Community Events',        sub:null, icon:'🎉', next:'r_8130_143' },
+    ]
+  },
+  other_class_8230_cleaning: {
+    type:'question', stepLabel:'Final step',
+    label:'Which class is this cleaning supplies expense for?',
+    hint:'<strong>Default is Class 610 — General Administrative</strong> for facility-wide cleaning supplies. Use Class 131 or 120 only if these supplies are exclusively for Retail or Donation operations.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:'Default — for the facility as a whole', icon:'🗂️', next:'r_8230_cleaning_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:'Only if exclusively for Retail area',  icon:'🏪', next:'r_8230_cleaning_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:'Only if exclusively for Donation area', icon:'🎁', next:'r_8230_cleaning_donation' },
+    ]
+  },
+  other_class_8230_facility: {
+    type:'question', stepLabel:'Final step',
+    label:'Which class is this facility repairs & maintenance expense for?',
+    hint:'<strong>Default is Class 610 — General Administrative</strong> for facility-wide repairs. Use Class 131 or 120 only if this repair is exclusively for Retail or Donation operations.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:'Default — for the facility as a whole', icon:'🗂️', next:'r_8230_facility_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:'Only if exclusively for Retail area',  icon:'🏪', next:'r_8230_facility_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:'Only if exclusively for Donation area', icon:'🎁', next:'r_8230_facility_donation' },
+    ]
+  },
+
+
+  // ── Rental sub-tree ──────────────────────────────────────────────
+  other_rental_type: {
+    type:'question', stepLabel:'Step 2 of 3',
+    label:'What is this vehicle or truck rental for?',
+    hint:null,
+    options:[
+      { label:'Picking up donated bikes',         sub:'Transport to retrieve donated bikes for the shop',  icon:'🚲', next:'other_rental_bikes_program' },
+      { label:'Moving or other purposes',         sub:'Not associated with picking up bikes',              icon:'🚛', next:'other_rental_moving_class' },
+    ]
+  },
+  other_rental_bikes_program: {
+    type:'question', stepLabel:'Step 3 of 3',
+    label:'Are the bikes being picked up for Retail resale, Donation, or both?',
+    hint:'If the bikes will be used for both purposes and the exact split is unknown, use the 50:50 default.',
+    options:[
+      { label:'Retail resale',       sub:'Bikes to be sold in the store',             icon:'🏪', next:'r_rental_bikes_retail' },
+      { label:'Donation Program',    sub:'Bikes to be refurbished and donated',        icon:'🎁', next:'r_rental_bikes_donation' },
+      { label:'Both — split',        sub:'50:50 default if exact split unknown',       icon:'⚖️', next:'r_rental_bikes_both' },
+    ]
+  },
+  other_rental_moving_class: {
+    type:'question', stepLabel:'Step 3 of 3',
+    label:'Which class is this rental expense for?',
+    hint:null,
+    options:[
+      { label:'Class 610 — General Administrative', sub:null, icon:'🗂️', next:'r_rental_moving_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null, icon:'🏪', next:'r_rental_moving_131' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null, icon:'🎁', next:'r_rental_moving_120' },
+      { label:'Class 110 — General Programs',        sub:null, icon:'📋', next:'r_rental_moving_110' },
+      { label:'Class 141 — General Education',       sub:null, icon:'📚', next:'r_rental_moving_141' },
+      { label:'Class 142 — BikeX Education',         sub:null, icon:'🚲', next:'r_rental_moving_142' },
+      { label:'Class 143 — Community Events',        sub:null, icon:'🎉', next:'r_rental_moving_143' },
+    ]
+  },
+
+  // ── Travel sub-tree ──────────────────────────────────────────────
+  other_travel_type: {
+    type:'question', stepLabel:'Step 2 of 3',
+    label:'What type of travel expense is this?',
+    hint:null,
+    options:[
+      { label:'Mileage reimbursement',         sub:'Personal vehicle used for SVBE business', icon:'🚗', next:'other_travel_program_8360' },
+      { label:'Airfare',                        sub:null,                                       icon:'✈️', next:'other_travel_program_8320' },
+      { label:'Hotel / lodging',                sub:null,                                       icon:'🏨', next:'other_travel_program_8340' },
+      { label:'Conference or event registration',sub:null,                                      icon:'🎟️', next:'other_travel_program_8350' },
+      { label:'Meals while traveling',          sub:'Not volunteer appreciation — see Food',    icon:'🍽️', next:'other_travel_program_8330' },
+      { label:'Transportation',                 sub:'Rideshare, taxi, transit, parking',        icon:'🚌', next:'other_travel_program_8310' },
+    ]
+  },
+  other_travel_program_8360: {
+    type:'question', stepLabel:'Step 3 of 3',
+    label:'Which class is this mileage reimbursement for?',
+    hint:null,
+    options:[
+      { label:'Class 610 — General Administrative', sub:null, icon:'🗂️', next:'r_travel_8360_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null,     icon:'🏪', next:'r_travel_8360_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null,     icon:'🎁', next:'r_travel_8360_donation' },
+      { label:'Class 110 — General Programs',        sub:null,     icon:'📋', next:'r_travel_8360_110' },
+      { label:'Class 141 — General Education',       sub:null,     icon:'📚', next:'r_travel_8360_141' },
+      { label:'Class 142 — BikeX Education',         sub:null,     icon:'🚲', next:'r_travel_8360_142' },
+      { label:'Class 143 — Community Events',        sub:null,     icon:'🎉', next:'r_travel_8360_143' },
+    ]
+  },
+  other_travel_program_8320: {
+    type:'question', stepLabel:'Step 3 of 3',
+    label:'Which class is this airfare expense for?',
+    hint:'<strong>Default is Class 610 — General Administrative.</strong> Select a different class only if this travel is clearly for a specific program.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:null, icon:'🗂️', next:'r_travel_8320_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null,     icon:'🏪', next:'r_travel_8320_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null,     icon:'🎁', next:'r_travel_8320_donation' },
+      { label:'Class 110 — General Programs',        sub:null,     icon:'📋', next:'r_travel_8320_110' },
+      { label:'Class 141 — General Education',       sub:null,     icon:'📚', next:'r_travel_8320_141' },
+      { label:'Class 142 — BikeX Education',         sub:null,     icon:'🚲', next:'r_travel_8320_142' },
+      { label:'Class 143 — Community Events',        sub:null,     icon:'🎉', next:'r_travel_8320_143' },
+    ]
+  },
+  other_travel_program_8340: {
+    type:'question', stepLabel:'Step 3 of 3',
+    label:'Which class is this hotel & lodging expense for?',
+    hint:'<strong>Default is Class 610 — General Administrative.</strong> Select a different class only if this travel is clearly for a specific program.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:null, icon:'🗂️', next:'r_travel_8340_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null,     icon:'🏪', next:'r_travel_8340_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null,     icon:'🎁', next:'r_travel_8340_donation' },
+      { label:'Class 110 — General Programs',        sub:null,     icon:'📋', next:'r_travel_8340_110' },
+      { label:'Class 141 — General Education',       sub:null,     icon:'📚', next:'r_travel_8340_141' },
+      { label:'Class 142 — BikeX Education',         sub:null,     icon:'🚲', next:'r_travel_8340_142' },
+      { label:'Class 143 — Community Events',        sub:null,     icon:'🎉', next:'r_travel_8340_143' },
+    ]
+  },
+  other_travel_program_8350: {
+    type:'question', stepLabel:'Step 3 of 3',
+    label:'Which class is this conference registration for?',
+    hint:'<strong>Default is Class 610 — General Administrative.</strong> Select a different class only if this expense is clearly for a specific program.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:null, icon:'🗂️', next:'r_travel_8350_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null,     icon:'🏪', next:'r_travel_8350_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null,     icon:'🎁', next:'r_travel_8350_donation' },
+      { label:'Class 110 — General Programs',        sub:null,     icon:'📋', next:'r_travel_8350_110' },
+      { label:'Class 141 — General Education',       sub:null,     icon:'📚', next:'r_travel_8350_141' },
+      { label:'Class 142 — BikeX Education',         sub:null,     icon:'🚲', next:'r_travel_8350_142' },
+      { label:'Class 143 — Community Events',        sub:null,     icon:'🎉', next:'r_travel_8350_143' },
+    ]
+  },
+  other_travel_program_8330: {
+    type:'question', stepLabel:'Step 3 of 3',
+    label:'Which class are these travel meals for?',
+    hint:'<strong>Default is Class 610 — General Administrative.</strong> Select a different class only if this travel is clearly for a specific program.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:null, icon:'🗂️', next:'r_travel_8330_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null,     icon:'🏪', next:'r_travel_8330_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null,     icon:'🎁', next:'r_travel_8330_donation' },
+      { label:'Class 110 — General Programs',        sub:null,     icon:'📋', next:'r_travel_8330_110' },
+      { label:'Class 141 — General Education',       sub:null,     icon:'📚', next:'r_travel_8330_141' },
+      { label:'Class 142 — BikeX Education',         sub:null,     icon:'🚲', next:'r_travel_8330_142' },
+      { label:'Class 143 — Community Events',        sub:null,     icon:'🎉', next:'r_travel_8330_143' },
+    ]
+  },
+  other_travel_program_8310: {
+    type:'question', stepLabel:'Step 3 of 3',
+    label:'Which class is this transportation expense for?',
+    hint:'<strong>Default is Class 610 — General Administrative.</strong> Select a different class only if this travel is clearly for a specific program.',
+    options:[
+      { label:'Class 610 — General Administrative', sub:null, icon:'🗂️', next:'r_travel_8310_610' },
+      { label:'Class 131 — Retail Store Sales',      sub:null,     icon:'🏪', next:'r_travel_8310_retail' },
+      { label:'Class 120 — Bike Donation Ops',       sub:null,     icon:'🎁', next:'r_travel_8310_donation' },
+      { label:'Class 110 — General Programs',        sub:null,     icon:'📋', next:'r_travel_8310_110' },
+      { label:'Class 141 — General Education',       sub:null,     icon:'📚', next:'r_travel_8310_141' },
+      { label:'Class 142 — BikeX Education',         sub:null,     icon:'🚲', next:'r_travel_8310_142' },
+      { label:'Class 143 — Community Events',        sub:null,     icon:'🎉', next:'r_travel_8310_143' },
+    ]
+  },
+
+  // ── Other purchases — results ────────────────────────────────────
+  // Helper macro inline — office 8110
+  r_8110_610:      { type:'result', title:'Single line entry', sub:'Office supplies — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8110',desc:'Office supplies'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_8110_retail:   { type:'result', title:'Single line entry', sub:'Office supplies — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8110',desc:'Office supplies'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_8110_donation: { type:'result', title:'Single line entry', sub:'Office supplies — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8110',desc:'Office supplies'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+
+  // Printing 8160
+  r_8160_610:      { type:'result', title:'Single line entry', sub:'Printing & copying — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8160',desc:'Printing & copying'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_8160_retail:   { type:'result', title:'Single line entry', sub:'Printing & copying — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8160',desc:'Printing & copying'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_8160_donation: { type:'result', title:'Single line entry', sub:'Printing & copying — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8160',desc:'Printing & copying'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_8160_110:      { type:'result', title:'Single line entry', sub:'Printing & copying — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8160',desc:'Printing & copying'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_8160_141:      { type:'result', title:'Single line entry', sub:'Printing & copying — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8160',desc:'Printing & copying'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_8160_142:      { type:'result', title:'Single line entry', sub:'Printing & copying — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8160',desc:'Printing & copying'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_8160_143:      { type:'result', title:'Single line entry', sub:'Printing & copying — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8160',desc:'Printing & copying'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+
+  // Postage 8130
+  r_8130_610:      { type:'result', title:'Single line entry', sub:'Postage & mailing — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8130',desc:'Postage & mailing'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_8130_retail:   { type:'result', title:'Single line entry', sub:'Postage & mailing — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8130',desc:'Postage & mailing'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_8130_donation: { type:'result', title:'Single line entry', sub:'Postage & mailing — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8130',desc:'Postage & mailing'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_8130_110:      { type:'result', title:'Single line entry', sub:'Postage & mailing — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8130',desc:'Postage & mailing'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_8130_141:      { type:'result', title:'Single line entry', sub:'Postage & mailing — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8130',desc:'Postage & mailing'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_8130_142:      { type:'result', title:'Single line entry', sub:'Postage & mailing — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8130',desc:'Postage & mailing'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_8130_143:      { type:'result', title:'Single line entry', sub:'Postage & mailing — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8130',desc:'Postage & mailing'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+
+  // Cleaning supplies 8230
+  r_8230_cleaning_610:      { type:'result', title:'Single line entry', sub:'Facility cleaning supplies — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8230',desc:'Facility supplies & maintenance'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_8230_cleaning_retail:   { type:'result', title:'Single line entry', sub:'Facility cleaning supplies — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8230',desc:'Facility supplies & maintenance'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_8230_cleaning_donation: { type:'result', title:'Single line entry', sub:'Facility cleaning supplies — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8230',desc:'Facility supplies & maintenance'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+
+  // Facility repairs 8230
+  r_8230_facility_610:      { type:'result', title:'Single line entry', sub:'Facility repairs & maintenance — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8230',desc:'Facility supplies & maintenance'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_8230_facility_retail:   { type:'result', title:'Single line entry', sub:'Facility repairs & maintenance — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8230',desc:'Facility supplies & maintenance'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_8230_facility_donation: { type:'result', title:'Single line entry', sub:'Facility repairs & maintenance — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8230',desc:'Facility supplies & maintenance'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+
+  // Subscriptions 8170
+  r_8170_610: { type:'result', title:'Single line entry', sub:'Subscriptions & online services',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8170',desc:'Subscriptions & online services'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+
+  // Volunteer recognition 8547
+  r_other_vol_recognition: { type:'result', title:'Single line entry', sub:'Volunteer appreciation & recognition',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8547',desc:'Volunteer recognition'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+
+  // Rental — bike pickup results
+  r_rental_bikes_retail:   { type:'result', title:'Single line entry', sub:'Vehicle rental — picking up bikes for Retail resale',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'5433',desc:'Inbound COGS freight'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_rental_bikes_donation: { type:'result', title:'Single line entry', sub:'Vehicle rental — picking up bikes for Donation Program',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8140',desc:'Vehicle rental — donation'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_rental_bikes_both:     { type:'result', title:'Split transaction', sub:'Vehicle rental — bikes for Retail + Donation',
+    rows:[
+      { label:'Line 1 — Retail portion (50%)', chips:[{label:'Category',value:'5433',desc:'Inbound COGS freight'},{label:'Class',value:'131',desc:'Retail Store Sales'}]},
+      { label:'Line 2 — Donation portion (50%)', split:true, chips:[{label:'Category',value:'8140',desc:'Vehicle rental — donation'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]},
+    ],
+    note:'Default split is 50:50 for 2026. Adjust if the actual usage split is known.' },
+  // Rental — moving/other results
+  r_rental_moving_610: { type:'result', title:'Single line entry', sub:'Vehicle rental — moving/other — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8140',desc:'Vehicle rental'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_rental_moving_131: { type:'result', title:'Single line entry', sub:'Vehicle rental — moving/other — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8140',desc:'Vehicle rental'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_rental_moving_120: { type:'result', title:'Single line entry', sub:'Vehicle rental — moving/other — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8140',desc:'Vehicle rental'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_rental_moving_110: { type:'result', title:'Single line entry', sub:'Vehicle rental — moving/other — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8140',desc:'Vehicle rental'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_rental_moving_141: { type:'result', title:'Single line entry', sub:'Vehicle rental — moving/other — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8140',desc:'Vehicle rental'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_rental_moving_142: { type:'result', title:'Single line entry', sub:'Vehicle rental — moving/other — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8140',desc:'Vehicle rental'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_rental_moving_143: { type:'result', title:'Single line entry', sub:'Vehicle rental — moving/other — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8140',desc:'Vehicle rental'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+  r_rental_unknown: {
+    type:'result', title:'Contact Katy Tripp', sub:'Rental type not listed',
+    ask:true,
+    askMsg:'This rental type is not yet mapped. Add a memo in Ramp describing the rental and Katy Tripp will assign the correct category during her review.',
+    rows:[]
+  },
+
+  // Travel results — 7 classes each
+  // 8360 Mileage
+  r_travel_8360_610:      { type:'result', title:'Single line entry', sub:'Mileage reimbursement — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8360',desc:'Mileage reimbursement'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_travel_8360_retail:   { type:'result', title:'Single line entry', sub:'Mileage reimbursement — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8360',desc:'Mileage reimbursement'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_travel_8360_donation: { type:'result', title:'Single line entry', sub:'Mileage reimbursement — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8360',desc:'Mileage reimbursement'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_travel_8360_110:      { type:'result', title:'Single line entry', sub:'Mileage reimbursement — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8360',desc:'Mileage reimbursement'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_travel_8360_141:      { type:'result', title:'Single line entry', sub:'Mileage reimbursement — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8360',desc:'Mileage reimbursement'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_travel_8360_142:      { type:'result', title:'Single line entry', sub:'Mileage reimbursement — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8360',desc:'Mileage reimbursement'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_travel_8360_143:      { type:'result', title:'Single line entry', sub:'Mileage reimbursement — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8360',desc:'Mileage reimbursement'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+  // 8320 Airfare
+  r_travel_8320_610:      { type:'result', title:'Single line entry', sub:'Airfare — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8320',desc:'Airfare'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_travel_8320_retail:   { type:'result', title:'Single line entry', sub:'Airfare — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8320',desc:'Airfare'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_travel_8320_donation: { type:'result', title:'Single line entry', sub:'Airfare — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8320',desc:'Airfare'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_travel_8320_110:      { type:'result', title:'Single line entry', sub:'Airfare — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8320',desc:'Airfare'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_travel_8320_141:      { type:'result', title:'Single line entry', sub:'Airfare — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8320',desc:'Airfare'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_travel_8320_142:      { type:'result', title:'Single line entry', sub:'Airfare — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8320',desc:'Airfare'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_travel_8320_143:      { type:'result', title:'Single line entry', sub:'Airfare — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8320',desc:'Airfare'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+  // 8340 Hotel
+  r_travel_8340_610:      { type:'result', title:'Single line entry', sub:'Hotel & lodging — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8340',desc:'Hotel & lodging'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_travel_8340_retail:   { type:'result', title:'Single line entry', sub:'Hotel & lodging — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8340',desc:'Hotel & lodging'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_travel_8340_donation: { type:'result', title:'Single line entry', sub:'Hotel & lodging — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8340',desc:'Hotel & lodging'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_travel_8340_110:      { type:'result', title:'Single line entry', sub:'Hotel & lodging — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8340',desc:'Hotel & lodging'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_travel_8340_141:      { type:'result', title:'Single line entry', sub:'Hotel & lodging — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8340',desc:'Hotel & lodging'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_travel_8340_142:      { type:'result', title:'Single line entry', sub:'Hotel & lodging — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8340',desc:'Hotel & lodging'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_travel_8340_143:      { type:'result', title:'Single line entry', sub:'Hotel & lodging — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8340',desc:'Hotel & lodging'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+  // 8350 Conference registration
+  r_travel_8350_610:      { type:'result', title:'Single line entry', sub:'Conference registration — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8350',desc:'Conference & registration'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_travel_8350_retail:   { type:'result', title:'Single line entry', sub:'Conference registration — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8350',desc:'Conference & registration'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_travel_8350_donation: { type:'result', title:'Single line entry', sub:'Conference registration — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8350',desc:'Conference & registration'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_travel_8350_110:      { type:'result', title:'Single line entry', sub:'Conference registration — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8350',desc:'Conference & registration'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_travel_8350_141:      { type:'result', title:'Single line entry', sub:'Conference registration — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8350',desc:'Conference & registration'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_travel_8350_142:      { type:'result', title:'Single line entry', sub:'Conference registration — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8350',desc:'Conference & registration'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_travel_8350_143:      { type:'result', title:'Single line entry', sub:'Conference registration — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8350',desc:'Conference & registration'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+  // 8330 Meals while traveling
+  r_travel_8330_610:      { type:'result', title:'Single line entry', sub:'Travel meals — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8330',desc:'Meals while traveling'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_travel_8330_retail:   { type:'result', title:'Single line entry', sub:'Travel meals — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8330',desc:'Meals while traveling'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_travel_8330_donation: { type:'result', title:'Single line entry', sub:'Travel meals — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8330',desc:'Meals while traveling'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_travel_8330_110:      { type:'result', title:'Single line entry', sub:'Travel meals — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8330',desc:'Meals while traveling'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_travel_8330_141:      { type:'result', title:'Single line entry', sub:'Travel meals — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8330',desc:'Meals while traveling'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_travel_8330_142:      { type:'result', title:'Single line entry', sub:'Travel meals — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8330',desc:'Meals while traveling'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_travel_8330_143:      { type:'result', title:'Single line entry', sub:'Travel meals — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8330',desc:'Meals while traveling'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+  // 8310 Transportation
+  r_travel_8310_610:      { type:'result', title:'Single line entry', sub:'Transportation — General Administrative',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8310',desc:'Transportation'},{label:'Class',value:'610',desc:'General Administrative'}]}] },
+  r_travel_8310_retail:   { type:'result', title:'Single line entry', sub:'Transportation — Retail Store Sales',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8310',desc:'Transportation'},{label:'Class',value:'131',desc:'Retail Store Sales'}]}] },
+  r_travel_8310_donation: { type:'result', title:'Single line entry', sub:'Transportation — Bike Donation Ops',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8310',desc:'Transportation'},{label:'Class',value:'120',desc:'Bike Donation Ops'}]}] },
+  r_travel_8310_110:      { type:'result', title:'Single line entry', sub:'Transportation — General Programs',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8310',desc:'Transportation'},{label:'Class',value:'110',desc:'General Programs'}]}] },
+  r_travel_8310_141:      { type:'result', title:'Single line entry', sub:'Transportation — General Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8310',desc:'Transportation'},{label:'Class',value:'141',desc:'General Education'}]}] },
+  r_travel_8310_142:      { type:'result', title:'Single line entry', sub:'Transportation — BikeX Education',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8310',desc:'Transportation'},{label:'Class',value:'142',desc:'BikeX Education'}]}] },
+  r_travel_8310_143:      { type:'result', title:'Single line entry', sub:'Transportation — Community Events',
+    rows:[{ label:'Enter in Ramp', chips:[{label:'Category',value:'8310',desc:'Transportation'},{label:'Class',value:'143',desc:'Community Events'}]}] },
+
+  r_other_unknown: {
+    type: 'result', title: "No problem — here's what to do", sub: "Purchase type not listed",
+    ask: true,
+    askMsg: "If you leave the coding blank in Ramp, add a memo describing the purchase — the person reviewing Ramp transactions can code it for you or follow up with questions. You can also consult the SVBE Chart of Accounts in QuickBooks Online, or reach out directly to Katy Tripp (Treasurer) or Ross Stovall (Secretary) for guidance.",
+    rows: []
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  ENGINE
+// ═══════════════════════════════════════════════════════════════════
+let history = [];
+let current = 'root';
+
+function progressPct(nodeId) {
+  const node = TREE[nodeId];
+  if (!node || node.type === 'result') return 100;
+  const label = node.stepLabel || '';
+  const m = label.match(/(\d+) of (\d+)/);
+  if (!m) return nodeId === 'other_menu' ? 50 : 10;
+  return Math.round((parseInt(m[1]) - 1) / parseInt(m[2]) * 100);
+}
+
+function render() {
+  const container = document.getElementById('screenContainer');
+  const fill = document.getElementById('progressFill');
+  fill.style.width = progressPct(current) + '%';
+
+  const node = TREE[current];
+  if (!node) return;
+
+  const div = document.createElement('div');
+  div.className = 'screen active';
+
+  if (node.type === 'question') {
+    div.innerHTML = `
+      ${node.stepLabel ? `<div class="step-label">${node.stepLabel}</div>` : (current === 'other_menu' ? '<div class="step-label">Other Purchases</div>' : '')}
+      <div class="question">${node.label}</div>
+      ${node.hint ? `<div class="hint">${node.hint}</div>` : ''}
+      <div class="options">
+        ${node.options.map(o => `
+          <button class="opt-btn" onclick="choose('${o.next}')">
+            <div class="opt-icon">${o.icon}</div>
+            <div class="opt-text">
+              <span class="opt-label">${o.label}</span>
+              ${o.sub ? `<span class="opt-sub">${o.sub}</span>` : ''}
+            </div>
+          </button>`).join('')}
+      </div>
+      ${history.length > 0 ? `<div class="btn-row" style="margin-top:16px"><button class="btn-back" onclick="goBack()">← Back</button></div>` : ''}
+    `;
+
+  } else {
+    // result
+    fill.style.width = '100%';
+    const r = node;
+
+    let rowsHTML = '';
+    r.rows.forEach(row => {
+      const cls = row.split ? 'coding-row split-row' : 'coding-row';
+      rowsHTML += `<div class="${cls}">
+        <div class="row-label">${row.label}</div>
+        <div class="code-chips">${row.chips.map(c => `
+          <div class="chip">
+            <span class="chip-label">${c.label}</span>
+            <span class="chip-value">${c.value}</span>
+            <span class="chip-desc">${c.desc}</span>
+          </div>`).join('')}
+        </div></div>`;
+    });
+
+    const noteHTML  = r.note    ? `<div class="result-note">⚠️ ${r.note}</div>` : '';
+    const askHTML   = r.askMsg  ? `<div class="result-warn">📋 ${r.askMsg}</div>` : '';
+    const checkHTML = !r.ask    ? `<div class="checklist">
+      <div class="checklist-title">Before you close the transaction</div>
+      <div class="check-item">Receipt is attached</div>
+      <div class="check-item">QuickBooks Category is correct</div>
+      <div class="check-item">QuickBooks Class is correct</div>
+      <div class="check-item">&ldquo;Receipt matches transaction&rdquo; notification is visible</div>
+    </div>` : '';
+
+    div.innerHTML = `
+      <div class="result-header">
+        <div class="result-icon">${r.ask ? '📋' : '✅'}</div>
+        <div>
+          <div class="result-title">${r.title}</div>
+          <div class="result-sub">${r.sub}</div>
+        </div>
+      </div>
+      ${rowsHTML ? `<div class="coding-rows">${rowsHTML}</div>` : ''}
+      ${noteHTML}
+      ${askHTML}
+      ${checkHTML}
+      <div class="btn-row">
+        <button class="btn-back" onclick="goBack()">← Back</button>
+        <button class="btn-restart" onclick="restart()">↩ Code another purchase</button>
+      </div>
+    `;
+  }
+
+  container.innerHTML = '';
+  container.appendChild(div);
+  document.getElementById('mainCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function choose(next) {
+  history.push(current);
+  current = next;
+  render();
+}
+function goBack() {
+  if (history.length > 0) { current = history.pop(); render(); }
+}
+function restart() {
+  history = [];
+  current = 'root';
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
